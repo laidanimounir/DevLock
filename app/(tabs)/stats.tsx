@@ -58,7 +58,7 @@ export default function StatsScreen() {
                 <View
                   className="w-8 bg-electric-500 rounded-t-lg"
                   style={{
-                    height: `${(monthlyIncome[i] / maxIncome) * 120}px`,
+                    height: Math.round((monthlyIncome[i] / maxIncome) * 120),
                     opacity: 0.6 + (i / MONTHS.length) * 0.4,
                   }}
                 />

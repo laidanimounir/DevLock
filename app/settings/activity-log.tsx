@@ -4,7 +4,8 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { getActivityLog } from "../../lib/activityLog";
-import { LoadingSpinner, EmptyState } from "../../components/ui/LoadingSpinner";
+import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
+import { EmptyState } from "../../components/ui/EmptyState";
 
 const ACTION_LABELS: Record<string, { label: string; icon: string; color: string }> = {
   login: { label: "Signed in", icon: "log-in-outline", color: "#10B981" },

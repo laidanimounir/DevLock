@@ -35,9 +35,11 @@ export async function scheduleInvoiceReminder(
 
   if (isBefore(reminderDate, now)) return null;
 
-  const trigger = Platform.OS === "ios" ? { date: reminderDate } : { date: reminderDate };
+  const triggerDate = Platform.OS === "ios"
+    ? ({ type: "date" as const, date: reminderDate })
+    : ({ type: "date" as const, date: reminderDate });
 
-  if (!trigger.date) return null;
+  if (!triggerDate.date) return null;
 
   const id = await Notifications.scheduleNotificationAsync({
     content: {
@@ -46,7 +48,7 @@ export async function scheduleInvoiceReminder(
       data: { invoiceId, projectName, type: "invoice_reminder" },
       sound: true,
     },
-    trigger,
+    trigger: triggerDate as any,
   });
 
   return id;
@@ -84,8 +86,8 @@ export async function scheduleExpiryReminder(
 
   if (isBefore(reminderDate, now)) return null;
 
-  const trigger = Platform.OS === "ios" ? { date: reminderDate } : { date: reminderDate };
-  if (!trigger.date) return null;
+  const triggerDate = { type: "date" as const, date: reminderDate } as const;
+  if (!triggerDate.date) return null;
 
   const id = await Notifications.scheduleNotificationAsync({
     content: {
@@ -94,7 +96,7 @@ export async function scheduleExpiryReminder(
       data: { projectName, type: `${type}_expiry` },
       sound: true,
     },
-    trigger,
+    trigger: triggerDate as any,
   });
 
   return id;

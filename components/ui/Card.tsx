@@ -69,7 +69,7 @@ export function ProjectCard({
             <Badge key={tech} variant="tech">{tech}</Badge>
           ))}
           {technologies.length > 4 && (
-            <Badge variant="tech">+{technologies.length - 4}</Badge>
+            <Badge variant="tech">{`+${technologies.length - 4}`}</Badge>
           )}
         </View>
       )}

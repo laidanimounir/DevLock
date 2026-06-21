@@ -6,7 +6,7 @@ export interface ShamirShare {
 }
 
 export function splitSecret(secretHex: string, totalShares: number, threshold: number): ShamirShare[] {
-  secrets.init(8);
+  secrets.init(8, "browserCryptoGetRandomValues");
 
   const shares = secrets.share(secretHex, totalShares, threshold);
 
@@ -28,7 +28,7 @@ export function hexToString(hex: string): string {
 }
 
 export function combineShares(shares: string[]): string {
-  secrets.init(8);
+  secrets.init(8, "browserCryptoGetRandomValues");
   return secrets.combine(shares);
 }
 
