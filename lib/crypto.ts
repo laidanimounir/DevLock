@@ -1,16 +1,22 @@
 import * as ExpoCrypto from "expo-crypto";
 import CryptoJS from "crypto-js";
 
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 export function generateIV(): string {
-  const randomBytes = ExpoCrypto.getRandomBytes(16);
-  const wordArray = CryptoJS.lib.WordArray.create(randomBytes as any);
-  return CryptoJS.enc.Base64.stringify(wordArray);
+  const bytes = ExpoCrypto.getRandomBytes(16);
+  const hexStr = bytesToHex(bytes);
+  return CryptoJS.enc.Hex.parse(hexStr).toString(CryptoJS.enc.Base64);
 }
 
 export function generateSalt(): string {
-  const randomBytes = ExpoCrypto.getRandomBytes(32);
-  const wordArray = CryptoJS.lib.WordArray.create(randomBytes as any);
-  return CryptoJS.enc.Base64.stringify(wordArray);
+  const bytes = ExpoCrypto.getRandomBytes(32);
+  const hexStr = bytesToHex(bytes);
+  return CryptoJS.enc.Hex.parse(hexStr).toString(CryptoJS.enc.Base64);
 }
 
 export function encryptAES256(text: string, key: string, iv: string): string {
@@ -57,9 +63,9 @@ export function hashPIN(pin: string): string {
 }
 
 export function generateEncryptionKey(): string {
-  const randomBytes = ExpoCrypto.getRandomBytes(32);
-  const wordArray = CryptoJS.lib.WordArray.create(randomBytes as any);
-  return CryptoJS.enc.Base64.stringify(wordArray);
+  const bytes = ExpoCrypto.getRandomBytes(32);
+  const hexStr = bytesToHex(bytes);
+  return CryptoJS.enc.Hex.parse(hexStr).toString(CryptoJS.enc.Base64);
 }
 
 export function encryptCredential(plainText: string, masterKey: string): { encrypted: string; iv: string } {

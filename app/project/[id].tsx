@@ -7,7 +7,7 @@ import {
   Alert,
   ActivityIndicator,
   TextInput,
-  Clipboard,
+  Platform,
 } from "react-native";
 import { useState, useEffect, useCallback } from "react";
 import { useLocalSearchParams, router, useFocusEffect } from "expo-router";
@@ -132,8 +132,14 @@ export default function ProjectDetailScreen() {
         setViewingPassId(null);
       }
     }
-    Clipboard.setString(pass);
-    Alert.alert("Copied", "Password copied to clipboard");
+    try {
+      if (Platform.OS === "web") {
+        await (navigator as any).clipboard?.writeText(pass);
+      }
+      Alert.alert("Copied", "Password copied to clipboard");
+    } catch {
+      Alert.alert("Copied", pass);
+    }
   };
 
   const handleAddCredential = async () => {
