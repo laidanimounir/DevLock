@@ -1,18 +1,14 @@
-import { View, Text, TextInput, ScrollView, TouchableOpacity } from "react-native";
-import { useState } from "react";
-import { router } from "expo-router";
+import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { useState, useEffect, useCallback } from "react";
+import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { ProjectCard } from "../../components/ui/Card";
-import { Badge } from "../../components/ui/Badge";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { ErrorState } from "../../components/ui/LoadingSpinner";
+import { getProjects } from "../../lib/projects";
+import type { Database } from "../../types/database";
 
-const MOCK_PROJECTS = [
-  { id: "1", name: "E-Commerce Mobile App", client: "ShopWave Inc.", status: "active", type: "mobile", technologies: ["React Native", "Supabase", "Stripe"], paymentStatus: "partial", healthStatus: "up" as const },
-  { id: "2", name: "Portfolio Website", client: "Sarah Design Studio", status: "active", type: "web", technologies: ["Next.js", "Tailwind CSS"], paymentStatus: "pending", healthStatus: "warning" as const },
-  { id: "3", name: "Blog Platform", client: "TechWrite Media", status: "maintenance", type: "web", technologies: ["Laravel", "MySQL"], paymentStatus: "paid", healthStatus: "up" as const },
-  { id: "4", name: "Delivery Tracker", client: "QuickShip LLC", status: "paused", type: "mixed", technologies: ["Flutter", "Firebase"], paymentStatus: "partial", healthStatus: "down" as const },
-  { id: "5", name: "Analytics Dashboard", client: "DataFlow Corp", status: "completed", type: "web", technologies: ["React", "Python", "AWS"], paymentStatus: "paid", healthStatus: "up" as const },
-];
+type Project = Database["public"]["Tables"]["projects"]["Row"];
 
 const FILTER_OPTIONS = {
   status: ["all", "active", "paused", "completed", "maintenance"],
@@ -27,6 +23,9 @@ const SORT_OPTIONS = [
 ];
 
 export default function ProjectsScreen() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -34,20 +33,49 @@ export default function ProjectsScreen() {
   const [sortBy, setSortBy] = useState("date");
   const [showFilters, setShowFilters] = useState(false);
 
-  const filtered = MOCK_PROJECTS.filter((p) => {
-    const matchSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.client.toLowerCase().includes(search.toLowerCase()) ||
-      p.technologies.some((t) => t.toLowerCase().includes(search.toLowerCase()));
+  const loadProjects = useCallback(async () => {
+    try {
+      setError(null);
+      const data = await getProjects();
+      setProjects(data);
+    } catch (err: any) {
+      setError(err.message || "Failed to load projects");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadProjects();
+    }, [loadProjects])
+  );
+
+  const filtered = projects.filter((p) => {
+    const matchSearch =
+      p.project_name.toLowerCase().includes(search.toLowerCase()) ||
+      p.client_name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.technologies || []).some((t: string) =>
+        t.toLowerCase().includes(search.toLowerCase())
+      );
     const matchStatus = statusFilter === "all" || p.status === statusFilter;
     const matchType = typeFilter === "all" || p.type === typeFilter;
-    const matchPayment = paymentFilter === "all" || p.paymentStatus === paymentFilter;
-
+    const matchPayment =
+      paymentFilter === "all" || p.payment_status === paymentFilter;
     return matchSearch && matchStatus && matchType && matchPayment;
   });
 
-  const hasActiveFilters = statusFilter !== "all" || typeFilter !== "all" || paymentFilter !== "all";
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === "name") return a.project_name.localeCompare(b.project_name);
+    if (sortBy === "income")
+      return (Number(b.contract_value) || 0) - (Number(a.contract_value) || 0);
+    return (
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  });
+
+  const hasActiveFilters =
+    statusFilter !== "all" || typeFilter !== "all" || paymentFilter !== "all";
 
   return (
     <View className="flex-1 bg-navy-900">
@@ -92,15 +120,11 @@ export default function ProjectsScreen() {
             {SORT_OPTIONS.map((opt) => (
               <TouchableOpacity
                 key={opt.key}
-                className={`px-3 py-2 rounded-xl ${
-                  sortBy === opt.key ? "bg-electric-500" : ""
-                }`}
+                className={`px-3 py-2 rounded-xl ${sortBy === opt.key ? "bg-electric-500" : ""}`}
                 onPress={() => setSortBy(opt.key)}
               >
                 <Text
-                  className={`text-xs font-semibold ${
-                    sortBy === opt.key ? "text-white" : "text-muted"
-                  }`}
+                  className={`text-xs font-semibold ${sortBy === opt.key ? "text-white" : "text-muted"}`}
                 >
                   {opt.label}
                 </Text>
@@ -117,14 +141,10 @@ export default function ProjectsScreen() {
                 {FILTER_OPTIONS.status.map((s) => (
                   <TouchableOpacity
                     key={s}
-                    className={`px-3 py-2 rounded-lg border ${
-                      statusFilter === s ? "bg-electric-500/20 border-electric-500" : "border-navy-500"
-                    }`}
+                    className={`px-3 py-2 rounded-lg border ${statusFilter === s ? "bg-electric-500/20 border-electric-500" : "border-navy-500"}`}
                     onPress={() => setStatusFilter(s)}
                   >
-                    <Text className={`text-xs capitalize ${statusFilter === s ? "text-electric-500" : "text-muted"}`}>
-                      {s}
-                    </Text>
+                    <Text className={`text-xs capitalize ${statusFilter === s ? "text-electric-500" : "text-muted"}`}>{s}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -135,14 +155,10 @@ export default function ProjectsScreen() {
                 {FILTER_OPTIONS.type.map((t) => (
                   <TouchableOpacity
                     key={t}
-                    className={`px-3 py-2 rounded-lg border ${
-                      typeFilter === t ? "bg-electric-500/20 border-electric-500" : "border-navy-500"
-                    }`}
+                    className={`px-3 py-2 rounded-lg border ${typeFilter === t ? "bg-electric-500/20 border-electric-500" : "border-navy-500"}`}
                     onPress={() => setTypeFilter(t)}
                   >
-                    <Text className={`text-xs capitalize ${typeFilter === t ? "text-electric-500" : "text-muted"}`}>
-                      {t}
-                    </Text>
+                    <Text className={`text-xs capitalize ${typeFilter === t ? "text-electric-500" : "text-muted"}`}>{t}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -153,14 +169,10 @@ export default function ProjectsScreen() {
                 {FILTER_OPTIONS.payment.map((p) => (
                   <TouchableOpacity
                     key={p}
-                    className={`px-3 py-2 rounded-lg border ${
-                      paymentFilter === p ? "bg-electric-500/20 border-electric-500" : "border-navy-500"
-                    }`}
+                    className={`px-3 py-2 rounded-lg border ${paymentFilter === p ? "bg-electric-500/20 border-electric-500" : "border-navy-500"}`}
                     onPress={() => setPaymentFilter(p)}
                   >
-                    <Text className={`text-xs capitalize ${paymentFilter === p ? "text-electric-500" : "text-muted"}`}>
-                      {p}
-                    </Text>
+                    <Text className={`text-xs capitalize ${paymentFilter === p ? "text-electric-500" : "text-muted"}`}>{p}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -170,24 +182,34 @@ export default function ProjectsScreen() {
       </View>
 
       <ScrollView className="flex-1 px-5">
-        {filtered.length === 0 ? (
+        {loading ? (
+          <View className="py-20 items-center">
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text className="text-muted text-sm mt-4">Loading projects...</Text>
+          </View>
+        ) : error ? (
+          <ErrorState message={error} onRetry={loadProjects} />
+        ) : sorted.length === 0 ? (
           <EmptyState
-            title="No projects found"
-            description={search ? "Try adjusting your search or filters" : "Add your first project to get started"}
+            title={search ? "No projects found" : "No projects yet"}
+            description={
+              search
+                ? "Try adjusting your search or filters"
+                : "Add your first project to get started"
+            }
             actionLabel={search ? undefined : "Add Project"}
             onAction={search ? undefined : () => router.push("/project/add")}
           />
         ) : (
-          filtered.map((project) => (
+          sorted.map((project) => (
             <ProjectCard
               key={project.id}
-              name={project.name}
-              client={project.client}
+              name={project.project_name}
+              client={project.client_name}
               status={project.status}
               type={project.type}
-              technologies={project.technologies}
-              paymentStatus={project.paymentStatus}
-              healthStatus={project.healthStatus}
+              technologies={project.technologies || []}
+              paymentStatus={project.payment_status}
               onPress={() => router.push(`/project/${project.id}`)}
             />
           ))

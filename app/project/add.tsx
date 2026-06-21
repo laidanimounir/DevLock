@@ -1,7 +1,8 @@
-import { View, Text, ScrollView, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import { useState } from "react";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { createProject } from "../../lib/projects";
 
 const STEPS = ["Basic Info", "Technologies", "Financial", "Dates", "Notes"];
 const PROJECT_TYPES = ["mobile", "web", "mixed", "other"] as const;
@@ -28,6 +29,7 @@ export default function AddProjectScreen() {
   const [domainExpiry, setDomainExpiry] = useState("");
   const [hostingExpiry, setHostingExpiry] = useState("");
   const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const canNext = () => {
     switch (step) {
@@ -40,8 +42,28 @@ export default function AddProjectScreen() {
     }
   };
 
-  const handleSubmit = () => {
-    router.back();
+  const handleSubmit = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await createProject({
+        project_name: name.trim(),
+        client_name: client.trim(),
+        type: type as any,
+        status: status as any,
+        technologies,
+        contract_value: contractValue ? parseFloat(contractValue) : null,
+        paid_amount: paidAmount ? parseFloat(paidAmount) : 0,
+        domain_expiry: domainExpiry || null,
+        hosting_expiry: hostingExpiry || null,
+        notes: notes.trim() || null,
+      });
+      router.back();
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Failed to create project");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -269,11 +291,15 @@ export default function AddProjectScreen() {
               handleSubmit();
             }
           }}
-          disabled={!canNext()}
+          disabled={!canNext() || submitting}
         >
-          <Text className="text-white font-bold">
-            {step === 4 ? "Create Project" : "Next"}
-          </Text>
+          {submitting ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text className="text-white font-bold">
+              {step === 4 ? "Create Project" : "Next"}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
