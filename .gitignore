@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.expo/
+dist/
+
+# Secrets
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Expo
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Metro
+.metro-health-check-*
+
+# TypeScript
+*.tsbuildinfo
+
+# Android
+android/app/build/
+android/.gradle/
+
+# iOS
+ios/Pods/
+ios/build/
