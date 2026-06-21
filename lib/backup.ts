@@ -1,6 +1,6 @@
-import * as FileSystem from "expo-file-system";
+import { Paths, File } from "expo-file-system";
 import * as SecureStore from "expo-secure-store";
-import { encryptAES256, generateIV, generateEncryptionKey } from "./crypto";
+import { encryptAES256, decryptAES256, generateIV, generateEncryptionKey } from "./crypto";
 import { supabase } from "./supabase";
 
 const BACKUP_KEY_STORE = "nexvault_backup_key";
@@ -55,10 +55,12 @@ export async function exportEncryptedBackup(): Promise<{ encrypted: string; iv: 
   const iv = generateIV();
   const encrypted = encryptAES256(jsonString, backupKey, iv);
 
-  const backupFilePath = `${FileSystem.documentDirectory}nexvault-backup-${Date.now()}.enc`;
-  await FileSystem.writeAsStringAsync(backupFilePath, JSON.stringify({ encrypted, iv }), {
-    encoding: FileSystem.EncodingType.UTF8,
-  });
+  try {
+    const backupFile = new File(Paths.document, `nexvault-backup-${Date.now()}.enc`);
+    backupFile.write(JSON.stringify({ encrypted, iv }));
+  } catch {
+    // File write is best-effort; the encrypted payload is also returned
+  }
 
   return { encrypted, iv };
 }
@@ -75,7 +77,7 @@ export async function importEncryptedBackup(backup: {
     throw new Error("No backup key found. Cannot decrypt backup.");
   }
 
-  const decrypted = encryptAES256(backup.encrypted, backupKey, backup.iv);
+  const decrypted = decryptAES256(backup.encrypted, backupKey, backup.iv);
   const backupData: BackupData = JSON.parse(decrypted);
 
   const userId = user.id;
